@@ -1,0 +1,79 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+env/
+venv/
+.venv/
+ENV/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursor/rules/*.local
+
+# R history and data
+.Rhistory
+.RData
+.Ruserdata
+
+# Clinical / Neuroimaging data directories & formats (Do NOT upload)
+data/mr/
+data/pet/
+data/recon*/
+data/sheet*/
+data/CapAIBL*/
+data/data_sorting/
+pet_mr_seg_result/
+logs/
+*.nii
+*.nii.gz
+*.mgz
+*.dcm
+*.header
+*.lta
+*.dat
+*.prism
+*.xlsx
+*.xls
+*.zip
+
+# Exception: keep template files
+!data/patient_data_info.template.csv
+
+# Temporary / backup copies
+*副本*
+*backup*
+*.bak

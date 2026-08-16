@@ -1,0 +1,82 @@
+USAGE: mri_gtmpvc 
+
+   --i   inputvol : source data to PVC
+         --frame F : only process 0-based frame F from inputvol
+   --psf psfmm : scanner PSF FWHM in mm (see also --no-tfe and --no-pvc)
+   --seg segfile : anatomical segmentation to define regions for GTM
+   --reg reg.lta : LTA registration file that maps PET to anatomical
+   --regheader : assume input and seg share scanner space
+   --reg-identity : assume that input is in anatomical space 
+   --o   outdir    : output directory
+
+   --mask volfile : ignore areas outside of the mask (in input vol space)
+   --auto-mask FWHM thresh : automatically compute mask
+   --no-reduce-fov : do not reduce FoV to encompass mask
+   --reduce-fov-eqodd : reduce FoV to encompass mask but force nc=nr and ns to be odd
+   --C contrast.mtx : univariate contrast to test (ascii text file)
+
+   --default-seg-merge : default schema for merging ROIs
+   --merge-hypos : merge left and right hypointensites into to ROI
+   --merge-cblum-wm-gyri : cerebellum WM gyri back into cerebellum WM
+   --tt-reduce : reduce segmentation to that of a tissue type
+   --replace Id1 Id2 : replace seg Id1 with seg Id2
+   --replace-file : file with a list of Ids to replace
+   --rescale Id1 <Id2...>  : specify reference region(s) used to rescale (default is pons)
+   --zero-ref-region : zero the reference region(s) in output maps
+   --no-rescale   : do not global rescale such that mean of reference region is scaleref
+   --scale-refval refval : scale such that mean in reference region is refval
+   --ctab ctab : specify color table explicitly
+   --ctab-default : use default ctab
+   --tt-update : changes tissue type of VentralDC, BrainStem, and Pons to be SubcortGM
+     This will become the default for gtmseg in post FS6 versions
+   --lat : lateralize tissue types (--no-lat will turn off lateralization flag)
+      Mainly used with MGX to produce laterized maps (good for asymmetry studies)
+      Note: tissue type lateralization will sligthly affect results since 
+      the tissue type is used to resolve ties.
+
+   --no-tfe : do not correction for tissue fraction effect (corrects by default)
+   --no-pvc : turns off PVC entirely (both PSF and TFE)
+   --segpvfres resmm : set the tissue fraction resolution parameter (def is 0.5)
+     if a negative number is used, then it is treated as an upsampling factor (eg, -3)
+     The TF is computed by dividing the PET voxel into subvoxels of size segpvfres
+   --rbv             : perform RBV PVC
+   --rbv-res voxsize : set RBV voxel resolution (good for when standard res takes too much memory)
+   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1
+   --mg-ref-cerebral-wm : set MG RefIds to 2 and 41
+   --mg-ref-lobes-wm : set MG RefIds to those for lobes when using wm subseg
+   --mgx gmxthresh : GLM-based Mueller-Gaertner PVC, gmxthresh is min gm pvf bet 0 and 1
+   --km-ref RefId1 RefId2 ... : compute reference TAC for KM as mean of given RefIds
+   --km-hb  RefId1 RefId2 ... : compute HiBinding TAC for KM as mean of given RefIds
+   --ss bpc scale dcf : steady-state analysis spec blood plasma concentration, unit scale
+     and decay correction factor. You must also spec --km-ref. Turns off rescaling
+
+   --X : save X matrix in matlab4 format as X.mat (it will be big)
+   --y : save y matrix in matlab4 format as y.mat
+   --beta : save beta matrix in matlab4 format as beta.mat
+   --X0 : save X0 matrix in matlab4 format as X0.mat (it will be big)
+   --save-input : saves rescaled input as input.rescaled.nii.gz
+   --save-eres : saves residual error
+   --save-yhat : saves yhat
+   --save-yhat-with-noise seed nreps : saves yhat with noise, seed < 0 for TOD
+   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)
+   --save-yhat0 : saves yhat prior to smoothing
+
+   --synth gtmbeta C R S MBs seed nreps : synthesize volume with gtmbeta as input
+       spec all other inputs the same; CRS are PSF for col, row, slice, MBs motion blur slope
+       seed=0 for no noise, -1 for TOD seed. Turns on VFC for synth
+       but returns it to its specified value for analysis
+   --synth-only : exit after doing synthesis (implies --synth-save)
+   --synth-save : with --synth saves synthesized volume to outdir/synth.nii.gz
+   --save-text : save demeaned GTM values out to text files named after the seg.
+
+   --sd SUBJECTS_DIR
+   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'
+   --gdiag diagno : set diagnostic level
+   --debug     turn on debugging
+   --checkopts don't run anything, just check options and exit
+   --help      print out information on how to use this program
+   --version   print out version and exit
+
+dev
+
+See http://surfer.nmr.mgh.harvard.edu/fswiki/PetSurfer

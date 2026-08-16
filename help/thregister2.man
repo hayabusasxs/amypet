@@ -1,0 +1,458 @@
+
+USAGE: tkregister2 
+
+   --help : usage and documentation
+
+   --mov  movable volume  <fmt> 
+   --targ target volume <fmt>
+   --fstarg : target is relative to subjectid/mri
+   --reg  register.dat : input/output registration file
+   --check-reg : only check, no --reg needed
+   --regheader : compute regstration from headers
+   --regheader-center : same as --regheader but aligns volume centers
+   --fsl-targ : use FSLDIR/data/standard/avg152T1.nii.gz
+   --fsl-targ-lr : use FSLDIR/data/standard/avg152T1_LR-marked.nii.gz
+   --gca subject : check linear GCA registration  
+   --gca-skull subject : check linear 'with skull' GCA registration  
+   --no-zero-cras : do not zero target cras (done with --fstal)
+   --movbright  f : brightness of movable volume
+   --no-inorm  : turn off intensity normalization
+   --fmov fmov : set mov brightness 
+   --fmov-targ : apply fmov brightness to the target
+   --plane  orient  : startup view plane <cor>, sag, ax
+   --slice  sliceno : startup slice number
+   --volview volid  : startup with targ or mov
+   --fov FOV  : window FOV in mm (default is 256)
+   --movscale scale : scale size of mov by scale
+   --surf surfname : display surface as an overlay 
+   --surf-rgb R G B : set surface color (0-255) 
+   --lh-only : only load/display left hemi 
+   --rh-only : only load/display right hemi 
+   --fstal : set mov to be tal and reg to be taliarach.xfm  
+   --talxfmname talxfmname : set mov to be tal and reg to be talxfmname  
+   --ixfm file : MNI-style inverse registration input matrix
+   --xfm file : MNI-style registration input matrix
+   --xfmout file : MNI-style registration output matrix
+   --fsl file : FSL-style registration input matrix
+   --fslregout file : FSL-Style registration output matrix
+   --freeview file : FreeView registration output matrix
+   --vox2vox file : vox2vox matrix in ascii
+   --lta ltafile : Linear Transform Array
+   --lta-inv ltafile : Read in LTA and invert
+   --ltaout ltaoutfile : Output a Linear Transform Array
+   --ltaout-inv : invert transform in ltaoutfile
+   --feat featdir : check example_func2standard registration
+   --fsfeat featdir : check reg/freesurfer/register.dat registration
+   --identity : use identity as registration matrix
+   --s subjectid : set subject id 
+   --sd dir : use dir as SUBJECTS_DIR
+   --nofix : don't fix old tkregister matrices
+   --float2int code : spec old tkregister float2int
+   --title title : set window title
+   --tag : tag mov vol near the col/row origin
+   --mov-orientation ostring : supply orientation string for mov
+   --targ-orientation ostring : supply orientation string for targ
+   --int intvol intreg : use registration from intermediate volume 
+   --2 : double window size 
+   --size scale : scale window by scale (eg, 0.5, 1.5) 
+   --det  detfile : save determinant of reg mat here
+   --aseg : load aseg (hit 'd' to toggle)
+   --aparc+aseg : load aparc+aseg (hit 'c' to toggle)
+   --wmparc : load wmparc (hit 'c' to toggle)
+   --gdiagno n : set debug level
+   --trans Tx Ty Tz : translation (mm) to apply to reg matrix
+   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
+   --conf-targ : conform target (assumes reg computed to conf target, eg, GCA)
+
+
+dev
+SUMMARY
+
+Note: consider using tkregisterfv which is a frontend for freeview
+
+tkregister2 is a tool to assist in the manual tuning of the linear
+registration between two volumes, mainly for the purpose of
+interacting with the FreeSurfer anatomical stream.
+The output register.dat maps from target tkregRAS to mov tkregRAS
+Note that this is reverse of what you might expect
+
+The GUI displays a
+window in which the user can toggle between the two volumes to see how
+well they line up. It is also possible to display the cortical surface
+to assist in alignment. The user can edit the registration by
+translation, rotation, and stretching.  The initial registration can
+be based on: (1) a previously existing registration, (2) the spatial
+information contained in the headers of the two input volumes, or (3)
+an FSL registration matrix. The output takes the form of a FreeSurfer
+registration matrix. It is also possible to output an FSL registration
+matrix. It is possible to run tkregister2 without the manual editing
+stage (ie, it exits immediately) in order to compute and/or convert
+registration matrices. tkregister2 can also compute registration
+matrices from two volumes aligned in SPM or FSL.
+
+  
+FLAGS AND OPTIONS
+  
+  --targ target-volume-id
+  
+  This is the path to the target volume. It can read anything readable 
+  by mri_convert. See also --fstarg.
+  
+  --fstarg
+  
+  This flag implicitly sets the target volume to be the T1 volume found
+  in the subjects directory under the subject name found in the 
+  input registration matrix. 
+  
+  --mov movable-volume-id
+  
+  This is the path to the target volume. It can read anything readable 
+  by mri_convert. See also --fstal.
+  
+  --fstal
+
+  Check and edit the talairach registration that was created during
+  the FreeSurfer reconstruction. Sets the movable volume to be 
+  $FREESURFER_HOME/average/mni305.cor.mgz and sets the registration file to be
+  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have
+  write permission to this file. Do not specify --reg with this
+  flag. It is ok to specify --regheader with this flag. The format
+  of the anatomical is automatically detected as mgz or COR. By default,
+  the target c_ras is temporarily set to 0 to assure that the target
+  is properly centered. This is taken into account when computing 
+  and writing the output xfm. To turn this off, add --no-zero-cras.
+
+  --plane <orientation>
+
+  Set the initial orientation. Valid values are cor, sag, and ax.
+  The default is cor.
+
+  --slice sliceno
+
+  Set the initial slice to view. 
+
+  --fov FOV
+
+  Set the view port field-of-view. Default is 256. Note, the zoom
+  can also be controlled interactively with - and =.
+
+  --movscale scale
+
+  Adjust registration matrix to scale mov volume by scale. This has
+  the same effect as adjusting the scale manually. It also flags
+  the matrix as being edited, and so you will be asked to save it
+  even if you have not made any manual edits.
+
+  --movframe frame
+
+  Use frame from moveable volume.
+
+  --surf <surfacename>
+
+  Load the cortical surface (both hemispheres) and display as an
+  overlay on the volumes. If just --surf is supplied, then the white 
+  surface is loaded, otherwise surfacename is loaded. The subject
+  name (as found in the input registration file or as specified
+  on the command-line) must be valid, and the surface must exist
+  in the subject's anatomical directory. The surface display can
+  be toggled by clicking in the window and hitting 's'.
+
+  --reg registration-file
+  
+  Path to the input or output FreeSurfer registration file. If the user
+  specifies that the initial registration be computed from the input
+  headers or from an FSL matrix, then this will be the output file.
+  Otherwise, the initial registration will be read from this file
+  (it will still be the output file). Note: a FreeSurfer registration
+  file must be specified even if you only want the FSL registration
+  file as the output. See also --fstal.
+  
+  --regheader
+  
+  Compute the initial registration from the information in the headers
+  of the input volumes. The contents of the registration file, if it
+  exists, will be ignored. This mostly makes sense when the two volumes
+  were acquired at the same time (ie, when the head motion is minimal).
+  
+  --fsl FSL-registration-file
+  
+  Use the matrix produced by the FSL routines as the initial registration.
+  It should be an ascii file with a 4x4 matrix. Note: the matrix should
+  map from the mov to the target. See also --feat and --fslregout.
+  
+  --xfm MNI-Style registration matrix
+  
+  Use the matrix produced by an MNI prgram as the   initial registration.
+  Note: the matrix should map from the mov to the target.
+  
+  --lta ltafile 
+  
+  RAS-to-RAS linear transform array file.  Note: the matrix should map from the mov to the target.
+  
+  --ltaout ltaoutfile 
+  
+  RAS-to-RAS linear transform array file.  
+  --vox2vox vox2voxfile 
+  
+  Input registration is a vox2vox ascii file. Vox2Vox maps target
+  indices (c,r,s) to mov indices. Lines that begin with '#' are ignored.
+  
+  --s identity
+  
+  Use identity as input registration. Same as simply creating
+  the identity matrix in a register.dat.
+  
+  --s subjectid
+  
+  Subject identifier string that will be printed in the output registration
+  file when no the input registration file is not specified (ie, with
+  --regheader or --fsl).
+  
+  --sd subjectsdir
+  
+  Set the path to the parent directory of the FreeSurfer anatomical 
+  reconstructions. If unspecified, this will default to the SUBJECTS_DIR 
+  environment variable. This only has an effect with --fstarg.
+  
+  --noedit
+  
+  Do not bring up the GUI, just print out file(s) and exit. This is mainly
+  useful saving the header-computer registration matrix (or for converting
+  from FreeSurfer to FSL, or the other way around).
+  
+  --fslregout FSL-registration-file
+  
+  Compute an FSL-compatible registration matrix based on either the
+  FreeSurfer matrix or the header. This can be helpful for initializing
+  the FSL registration routines.
+  
+  --feat featdir
+  
+  View/modify the FSL FEAT registration to standard space (ie,
+  example_func2standard.mat. Manual edits to the registration
+  will change this file. There will also be a 'tag', ie, a grid of
+  grid dots near the col-row-slice origin of the example_func.
+  This might be helpful for determining if the reg is left-right
+  reversed.
+  
+  --nofix
+  
+  This is only here for debugging purposes in order to simulate the behavior
+  of the old tkregister.
+  
+  --float2int code
+  
+  This is only here for debugging purposes in order to simulate the 
+  behavior of the old tkregister.
+  
+  --title title
+  
+  Set the window titles to title. Default is subjectname.
+  
+  --tag
+  
+  Creates a hatched pattern in the mov volume prior to resampling.
+  This pattern is in all slices near the col/row origin (ie, near
+  col=0,row=0). This can help to determine if there is a left-right
+  reversal. Think of this as a synthetic fiducial. Can be good in 
+  combination with --mov-orientation.
+  
+  --mov-orientation ostring
+  --targ-orientation ostring
+  
+  Supply the orientation information in the form of an orientation string 
+  (ostring). The ostring is three letters that roughly describe how the volume
+  is oriented. This is usually described by the direction cosine information
+  as originally derived from the dicom but might not be available in all data
+  sets. --mov-orientation will have no effect unless --regheader is specified.
+  The first  character of ostring determines the direction of increasing column.
+  The second character of ostring determines the direction of increasing row.
+  The third  character of ostring determines the direction of increasing slice.
+  Eg, if the volume is axial starting inferior and going superior the slice 
+  is oriented such that nose is pointing up and the right side of the subject
+  is on the left side of the image, then this would correspond to LPS, ie,
+  as the column increases, you move to the patients left; as the row increases,
+  you move posteriorly, and as the slice increases, you move superiorly. Valid
+  letters are L, R, P, A, I, and S. There are 48 valid combinations (eg, RAS
+  LPI, SRI). Some invalid ones are DPS (D is not a valid letter), RRS (can't
+  specify R twice), RAP (A and P refer to the same axis). Invalid combinations
+  are detected immediately, an error printed, and the program exits. Case-
+  insensitive.
+  
+  
+  --int volid regmat
+
+  Use registration from an intermediate volume. This can be useful when the
+  FOV of the moveable volume does not cover the entire brain. In this case, 
+  you can register a full-volume COLLECTED IN THE SAME SESSION AS THE MOVEABLE
+  to the target. Then specify this volume and its registration with --int.
+  regmat will be the registration resulting from a separate invocation of 
+  tkregister2 in which the intermediate volume is specified as the moveable. 
+  
+  --gdiagno N
+
+  Set the diagnostic/debug level. Default is 0.
+
+FREESURFER REGISTRATION CONVENTIONS
+
+For the purposes of FreeSurfer, the registration matrix maps the XYZ
+of the anatomical reference (ie, the subjects brain as found in 
+$SUBJECTS_DIR) to the XYZ of the functional volume. The anatomical
+reference is the 'target' volume (argument of --targ) and the 
+functional volume is the 'movable' volume (argument of --mov).
+The XYZ of a given col, row, and slice is defined
+based on the field-of-view by the following matrix:
+
+          (-dc 0   0  dc*Nc/2)
+     T =  ( 0  0  ds -ds*Ns/2) 
+          ( 0 -dr  0  dr*Nr/2)
+          ( 0  0   0     1   )
+
+where dc, dr, and ds are the voxel resolutions in the column, row,
+and slice directions, respectively, and  Nc, Nr, and Ns are the
+number of columns, rows, and slices.  Under this convention, 
+
+  XYZ = T*[r c s 1]
+
+The FreeSurfer registration matrix is then defined by:
+
+   XYZmov = R*XYZtarg
+
+FREESURFER REGISTRATION FILE FORMAT
+
+The FreeSurfer registration is stored in an ASCII file with the 
+following format:
+
+      subjectname
+      in-plane-res-mm
+      between-plane-res-mm
+      intensity
+      m11 m12 m13 m14
+      m21 m22 m23 m24
+      m31 m32 m33 m34
+      0   0   0   1
+
+The subject name is that as found in the SUBJECTS_DIR. The in-plane-res-mm
+is the in-plane pixels size in mm. The between-plane-res-mm is
+the distance between slices in mm. Intensity only affect the display
+of the movable in the GUI.
+
+USING THE GUI
+
+Two volumes are compared slice-by-slice by hitting the Compare button;
+this will alternatively display one volume and then the other. If held
+down, it will flash. The relative position of the movable volume can
+be changed with three sliders (1) Translate, (2) Rotate, and (3) Scale.
+Each operates in-plane; the Rotate rotates about the red cross-hair.
+The current orientation can be changed by hitting either the CORONAL,
+SAGITTAL, or HORIZONTAL buttons. The matrix can be saved by hitting the
+SAVE REG button. The intensity of the movable can be changed by editing
+the value of the 'fmov:' text box. The brightntess and contrast of the
+target can be changed by editing the 'contrast:' and 'midpoint:' text
+boxes. The target can be masked off to the FOV of the movable by 
+pressing the 'masktarg' radio button. If a surface has been loaded, it
+can be toggled by clicking in the display window and hitting 's'.
+
+SUMMARY OF KEYPRESS COMMANDS
+
+0 swap buffers (same as Compare)
+1 dispaly target
+2 dispaly moveable
+a increase moveable frame by 1
+b decrease moveable frame by 1
+c toggle colorization (inorm only)
+d toggle segmentation visibility
+e toggle slice prescription indicator
+i intensity normalize images
+n use nearest neighbor interpolation
+t use trilinear interpolation
+s toggle display of cortical surface
+x show sagittal view
+y show horizontal view
+z show coronal view
+- or _ zoom out
++ or = zoom in
+p translate up
+. translate down
+l translate left
+; translate right
+g translate into screen
+h translate out of screen
+[ rotate counter-clockwise about image normal
+] rotate clockwise about image normal
+q rotate about horiztonal image axis (neg)
+w rotate about horiztonal image axis (pos)
+r rotate about vertical image axis (neg)
+f rotate about vertical image axis (pos)
+Insert increase scale horizontally
+Delete decrease scale horizontally
+Home   increase scale vertically
+End    decrease scale vertically
+
+
+USING WITH FSL and SPM 
+
+In order to apply the FreeSurfer tools to data analyzed in FSL or SPM, it
+is necessary that you create a FreeSurfer-style registration matrix. This
+matrix is stored in a text file which is usually called 'register.dat'.
+It is not the same as an SPM .mat file. It is not the same as an FSL .mat 
+file. It is not the same as an analyze .hdr file. You can obtain a
+FreeSurfer-style registration matrix from those things but it is not the
+same as those things. If you do not obtain a FreeSurfer-style registration 
+matrix, then you will not be able to use the FreeSurfer tools with your
+functional data.
+
+You can obtain a FreeSurfer-style registration matrix by directly editing the
+registration from within tkregister2, however, it will be easier if you
+use FSL or SPM to perform the registration and then use tkregister2 to
+generate the FreeSurfer-style registration matrix. To do this, first convert
+the anatomical (ie, the one in SUBJECTS_DIR/subjectname/mri/orig) 
+to analyze format (use mri_convert SUBJECTS_DIR/subjectname/mri/orig cor.img).
+Convert the functional to analyze format (eg, f.img). 
+
+When using the SPM registration tool, select the functional (f.img) as the object
+and the anatomical (cor.img) as the target, and select the 'Coregister only' option. 
+The registration will be written into the functional .mat file. Run tkregister2 
+with the --regheader option. Use the --noedit option to suppress
+the GUI. Editing the registration will not affect the registration
+as seen by SPM. An example command-line is
+
+  tkregister2 --mov f.img --s yoursubject --regheader --noedit --reg register.dat 
+
+This will create/overwrite register.dat.
+
+For FSL, coregister the functional (f.img) to the anatomical (cor.img) (ie, 
+use the anatomical (cor.img) as the reference). This will produce an FSL 
+registration file (an ASCII file with the 4x4 matrix). Run tkregister2 specifying
+this file as the argument to the --fsl flag. Note, it is possible
+to generate an FSL matrix from the headers, which can be useful to
+initialize the FSL registration routines. To do this, just run
+tkregister2 with the --fslregout fsl.mat and --regheader flags,
+where fsl.mat is the name of the FSL matrix file. Use the --noedit
+option to suppress the GUI. Editing the registration will not affect
+the registration as seen by FSL unless --fslregout is specfied.
+An example command-line is
+
+  tkregister2 --mov f.img --fsl fsl.mat --s yoursubject --regheader
+      --noedit --reg register.dat 
+
+This will create/overwrite register.dat.
+
+If you don't include the --noedit, then the GUI will come up, and you
+can flip back and forth between the functional and the structural. If
+they are not well aligned then you are going to see garbage when you
+when you use tkmedit and tksurfer to view your data. So, CHECK YOUR
+REGISTRATION!!!
+
+BUGS
+
+It used to be the case that the GUI would not work if the target
+was not 256x256x256 voxels, isotropic at 1mm. This has been fixed
+by resampling the target into this space. This does not affect the
+final registration, ie, the registration matrix maps the original
+target (regarless of size) to the movable.
+
+AUTHORS
+
+The original tkregister was written by Martin Sereno and Anders Dale
+in 1996. The original was modified by Douglas Greve in 2002.

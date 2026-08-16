@@ -1,0 +1,63 @@
+USAGE: mri_info fname1 <fname2> <options> 
+
+   --conformed : print whether a volume is conformed stdout
+   --conformed-to-min : print whether a volume is conformed-to-min stdout
+   --is-1mm-iso : print whether the voxel size is 1mm isotropic
+   --type : print the voxel type/precision (e.g. FLOAT) to stdout
+   --tr : print TR to stdout
+   --te : print TE to stdout
+   --ti : print TI to stdout
+   --fa : print flip angle to stdout
+   --pedir : print phase encode direction
+   --res : print col row slice and frame resolution 
+   --min-res : print minimum of col row and slice resolutions (not frame) 
+   --cres : print column voxel size (xsize)
+   --rres : print row    voxel size (ysize)
+   --sres : print slice  voxel size (zsize)
+   --voxvol : print voxel volume
+   --voxvolsum : compute sum of all voxels times the voxel volume 
+   --ncols : print number of columns (width) to stdout
+   --nrows : print number of rows (height) to stdout
+   --nslices : print number of slices (depth) to stdout
+   --dim : print number of columns, rows, slices, and frames 
+   --cdc : print column direction cosine (x_{r,a,s})
+   --rdc : print row    direction cosine (y_{r,a,s})
+   --sdc : print slice  direction cosine (z_{r,a,s})
+   --vox2ras : print the native/qform vox2ras matrix
+   --ras2vox : print the native/qform ras2vox matrix
+   --vox2ras-tkr : print the tkregister vox2ras matrix
+   --ras2vox-tkr : print the tkregister ras2vox matrix
+   --vox2ras-fsl : print the FSL/FLIRT vox2ras matrix
+   --tkr2scanner : print tkrRAS-to-scannerRAS matrix 
+   --scanner2tkr : print scannerRAS-to-tkrRAS matrix 
+   --ras_good : print the ras_good_flag
+   --cras : print the RAS near the center of the volume (at nv/2)
+   --center : print the RAS at the actual center of the volume (at (nv-1)/2)
+   --zero-cras : zero the center ras
+   --p0 : print the RAS at voxel (0,0,0)
+   --det : print the determinant of the vox2ras matrix
+   --dof : print the dof stored in the header
+   --nframes : print number of frames to stdout
+   --mid-frame : print number of middle frame to stdout
+   --format : file format
+   --orientation, --ori : orientation string (eg, LPS, RAS, RPI)
+   --slicedirection : primary slice direction (eg, axial)
+   --autoalign : print auto align matrix (if it exists)
+   --ctab : print embedded color lookup table
+   --cmds : print command-line provenance info
+   --dump : print FA, TR, TE, TI, etc 
+   --voxel c r s : dump voxel value from col row slice (0-based, all frames)
+   --entropy : compute and print entropy 
+   --o file : print flagged results to file 
+   --otags file: print TAG info to stdout, and save the binary data to file 
+   ----orig_ras2vox : print orig Ras2Vox matrix if present
+   --in_type type : explicitly specify file type (see mri_convert) 
+
+
+Dumps information about the volume to stdout. Specific pieces 
+of information can be printed out as well by specifying the proper
+flag (eg, --tr for TR). Time is in msec. Distance is in mm. Angles
+are in radians.
+
+The direction cosine outputs (--cdc, --rdc, --sdc) correspond to 
+mri_convert flags -iid, -ijd, -ikd.

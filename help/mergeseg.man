@@ -1,0 +1,19 @@
+
+mergeseg --help
+ --src source segmentation
+ --merge merge seg volume 
+ --o outseg
+ --segid segindex (optional)
+ --segid-only segindex : only take segindex from merge
+ --segid-erode Nerode : erode seg-only segindex before merge
+ --ctab ctab : color table to embed in the output
+
+mergeseg dev
+
+Merges one segmentation into another. The output is the same as the source
+except in voxels where the merge seg is non-zero in which case those voxels
+are replaced with the values in the merge segmentation volume. 
+
+If you specify the segindex, then all the voxels in the merge seg will be set
+to segindex.
+

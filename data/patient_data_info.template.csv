@@ -1,0 +1,4 @@
+id,variant,manufacturer,patient_id,name,gender,age,weight,size,duration,dose,radiopharm_date,acq_date,radiopharm_time,acq_time,delta_time,thickness,rows,columns,pixel,dfov,diagnosis,mr_series,pet_series,modality
+001,1-1-1,SIGNA PET/MR,SUB001,Subject_01,M,70.0,65.0,1.70,5.0,370.0,20250101,20250101,100000,105000,50.0,2.78,192,192,1.82,350.0,MCI,Sag 3D BRAVO,1-1-1,PET
+001,2-1-1,SIGNA PET/MR,SUB001,Subject_01,M,70.0,65.0,1.70,10.0,370.0,20250101,20250101,100000,105000,50.0,2.78,192,192,1.82,350.0,MCI,Sag 3D BRAVO,2-1-1,PET
+002,1-1-1,SIGNA PET/MR,SUB002,Subject_02,F,65.0,55.0,1.60,5.0,370.0,20250102,20250102,110000,115000,50.0,2.78,192,192,1.82,350.0,AD,Sag 3D BRAVO,1-1-1,PET

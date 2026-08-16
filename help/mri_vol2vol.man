@@ -1,0 +1,424 @@
+
+mri_vol2vol
+
+  --mov  movvol       : input (or output template with --inv)
+  --targ targvol      : output template (or input with --inv)
+  --o    outvol       : output volume
+  --disp dispvol      : displacement volume
+  --downsample N1 N2 N3 : downsample factor (eg, 2) (do not include a targ or regsitration)
+         sets --fill-average, --fill-upsample 2, and --regheader
+
+  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
+  --lta  register.lta : Linear Transform Array (usually only 1 transform)
+  --lta-inv  register.lta : LTA, invert (may not be the same as --lta --inv with --fstal)
+  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
+  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
+  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
+  --mni152reg         : target MNI152 space (need FSL installed)
+  --s subject         : set matrix = identity and use subject for any templates
+
+  --inv               : sample from targ to mov
+
+  --tal               : map to a sub FOV of MNI305 (with --reg only)
+  --talres resolution : set voxel size 1mm or 2mm (def is 1)
+  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
+
+  --m3z morph    : non-linear morph encoded in the m3z format
+  --noDefM3zPath : flag indicating that the code should not be looking for 
+       the non-linear m3z morph in the default location (subj/mri/transforms), but should use 
+       the morph name as is
+  --inv-morph    : compute and use the inverse of the m3z morph
+
+  --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz 
+  --crop scale        : crop and change voxel size
+  --slice-crop sS sE  : crop output slices to be within sS and sE
+  --slice-reverse     : reverse order of slices, update vox2ras
+  --slice-bias alpha  : apply half-cosine bias field
+
+  --trilin            : trilinear interpolation (default)
+  --nearest           : nearest neighbor interpolation
+  --cubic             : cubic B-Spline interpolation
+  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)
+  --fill-average      : compute mean of all source voxels in a given target voxel
+  --fill-conserve     : compute sum  of all source voxels in a given target voxel
+  --fill-upsample USF : source upsampling factor for --fill-{avg,cons} (default is 2)
+
+  --mul mulval   : multiply output by mulval
+
+  --vsm vsmvol <pedir> : Apply a voxel shift map. pedir: +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)
+  --vsm-pedir pedir : set pedir +/-1=+/-x, +/-2=+/-y, +/-3=+/-z (default +2)
+
+  --precision precisionid : output precision (def is float)
+  --keep-precision  : set output precision to that of input
+  --kernel            : save the trilinear interpolation kernel instead
+   --copy-ctab : setenv FS_COPY_HEADER_CTAB to copy any ctab in the mov header
+   --vg-thresh thresh : set threshold for comparing vol geom
+
+  --gcam mov srclta gcam dstlta vsm interp out
+     srclta, gcam, or vsm can be set to 0 to indicate identity (not regheader)
+     if dstlta is 0, then uses gcam atlas geometry as output target
+     direction is automatically determined from srclta and dstlta
+     interp 0=nearest, 1=trilin, 5=cubicbspline
+     vsm pedir can be set with --vsm-pedir
+     DestVol -> dstLTA -> CVSVol -> gcam -> AnatVol -> srcLTA -> B0UnwarpedVol -> VSM -> MovVol (b0Warped)
+
+  --spm-warp mov movlta warp interp output
+     mov is the input to be mapped 
+     movlta maps mov to the vbm input space (use 0 to ignore)
+       if movlta=0, then input is anything that shares a RAS space with the VBM input
+     warp is typically y_rinput.nii
+     interp 0=nearest, 1=trilin
+
+  --map-point a b c incoords lta outcoords outfile : stand-alone option to map a point to another space
+     coords: 1=tkras, 2=scannerras, 3=vox; outfile can be nofile
+  --map-point-inv-lta a b c incoords lta outcoords outfile
+      same as --map-point but inverts the lta
+
+
+  --no-resample : do not resample, just change vox2ras matrix
+  --no-resample-scale : do not resample, just change vox2ras matrix, using scale=voxsize
+
+  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
+  --trans Tx Ty Tz : translation (mm) to apply to reg matrix
+  --shear Sxy Sxz Syz : xz is in-plane
+  --reg-final regfinal.dat : final reg after rot and trans (but not inv)
+  --ctab ctabfile : embed colortable into output (note: this will override any embedded ctab)
+
+  --synth : replace input with white gaussian noise
+  --seed seed : seed for synth (def is to set from time of day)
+
+  --save-reg : write out output volume registration matrix
+
+  --help : go ahead, make my day
+  --debug
+  --version
+
+
+dev
+
+
+Resamples a volume into another field-of-view using various types of
+matrices (FreeSurfer, FSL, SPM, and MNI). This is meant to be used
+in conjunction with tkregister2.
+
+FLAGS AND ARGUMENTS
+
+--mov movvol
+
+This volume must have the same geometry as the --mov volume passed to
+tkregister2 when creating/checking the registration file. By default,
+this will be the input volume that will be resampled. If --inv is
+specified, then this will become the geometry template for the output
+instead.
+
+--targ targvol
+
+This volume must have the same geometry as the --targ volume passed to
+tkregister2 when creating/checking the registration file. By default,
+this will be the volume will be the geometry template for the output.
+If --inv is specified, then this becomes the input volume that will be
+resampled instead. The target volume can be implicitly specified with
+--tal or --fstarg.
+
+--reg register.dat
+
+This simple text file contains the freesurfer registration matrix. It
+is the same as the file passed to and generated by tkregister2 with
+the --reg flag. If --tal or --fstarg is specified, then the subject
+is obtained from the regfile.
+
+--fsl register.fsl
+
+Registration matrix created with the FSL flirt program using targ as
+the reference and mov as input. Note: you cannot use any of the files
+from $FSLDIR/etc/standard as mov or targ. These volumes do not have
+geometry information in them, and FreeSurfer and FSL will default to
+different things. Same as in tkregister2.
+
+--xfm register.xfm
+
+MNI-style registration matrix (eg, like one created with mritotal).
+This matrix maps from mov Scanner-RAS to targ Scanner-RAS, where
+'Scanner-RAS' is the vox2ras matrix as found in each file.
+Same as in tkregister2.
+
+--regheader
+
+Create a registration matrix assuuming that the mov Scanner-RAS and
+targ Scanner-RAS are the same. This is the same as using a register.xfm
+with the identity matrix in it. This can be used with some SPM
+registrations (which change only the matrix in the .mat file).
+Same as in tkregister2.
+
+--mni152reg 
+
+Target MNI152 space. If the mov volume is in the native space of an
+individual, then also supply a registration (--reg). This registration
+is concatenated with that in subject/mri/transforms/reg.mni152.2mm.dat
+(created with mni152reg) to produce a registration from the mov vol
+to MNI152 (defined by $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz).
+If the data are in fsaverage 2mm space, then do not supply a --reg.
+Instead, $FREESURFER_HOME/average/mni152.register.dat is used
+as the registration. Do not supply a target volume with --mni152reg.
+
+--inv
+
+Invert the transform. The movvol becomes the geometry template for the
+output, and the targvol becomes the input that will be resampled.
+
+--o outvol
+
+Output volume.  By default, this will be the movvol resmapled into the
+targvol space (and so will have the same geometry as the targvol). If
+--inv is specified, then this will be the targvol resmapled into the
+movvol space (and so will have the same geometry as the movvol). By
+default, the output volume will be float, but this can be changed
+with --precision. By default, the interpolation will be done with
+trilinear, but this can be changed with --interp.
+
+  --keep-precision  : set output precision to that of input
+
+--tal
+
+Resample the movvol to talairach (ie, MNI305) space. The talairach
+matrix is obtained from talairach.xfm from
+SUBJECTS_DIR/subjid/transforms. subjid is read from the register.dat
+file. Requires --reg. Do not specify --targ as the target volume is
+implicitly set to $FREESURFER_HOME/average/mni305.cor.subfovV.mgz,
+where V is either 1 (for 1mm) or 2 (for 2mm). 2mm is used by default,
+but this can be changed with --talres.  mni305.cor.subfovV.mgz the
+MNI305 (1mm or 2mm isotropic) volume in a reduced FOV that covers only
+the brain. Reducing the FOV saves space relative to the 256^3 COR FOV.
+The transformation matrix is computed as R*inv(Xtal)*inv(Rtal), where
+Xtal is talairach.xfm matrix, R is the matrix in the regfile, and Rtal
+maps from the talairach COR FOV to the SubFOV (mni305.cor.subfovV.reg).
+If you want to sample the targvol from talairach space into the movvol
+space, then specify --inv. SUBJECTS_DIR is read from the environment
+or can be specified with --sd.
+
+--fstalres resmm
+
+Set the resolution of the output when using --fstal. By default, it
+is 2 mm, but can be changed to 1.0 mm with --fstalres 1
+
+--fstarg <vol>
+
+Set target to vol from the subject found in register.dat
+file. If vol is not specified, uses orig.mgz. Requires --reg.  
+Same as tkregister2.
+
+--crop scale
+
+Crop mov volume down to minimum size to fit non-zero voxels. The size of
+the voxels is reduced by scale (ie, --crop 2 would crop and reduce the
+voxel size by a factor of 2, eg 1.0 mm becomes 0.5 mm).
+
+--slice-crop start end
+
+Crop output volume to be within slices start and end. The geometry is 
+updated to reflect the new limits.
+
+--interp method
+
+Interpolate the output based on the given method. Legal values are:
+cubic, trilin and nearest. trilin is the default. Can also use
+--cubic, --trilin or --nearest.
+
+--precision precisionid
+
+Set output precision to precisionid. Legal values are uchar, short,
+int, long, and float. Default is float.
+
+--kernel
+
+Save the trilinear interpolation kernel at each voxel instead of the
+interpolated image.
+
+--nomr
+
+Don't copy the template MR parameters, but instead preserve the input volume 
+ones
+
+--help
+
+Prints out all this information.
+
+--gdiagno diagnostic level
+
+Sets the diagnostic level (only good for debuggin').
+
+--version
+
+Print out version string and exit.
+
+
+EXAMPLES:
+
+Below are some exampls of how one might use mri_vol2vol. They are not
+exhaustive of all the possible combinations of options. Typically, one
+uses a template to establish the registration, then resamples data
+that are in correspondence with the template.
+
+1. If a functional volume is f.bhdr (or f.nii.gz, or f.mgh, etc), and the
+subject is bert, and the registration file is register.dat, then
+running the following command should show that they are in
+registration:
+
+tkregister2 --reg register.dat --mov f.nii.gz
+
+If they are not, then fix it because nothing below is going to work. You
+can also check the registration with:
+
+tkmedit bert orig.mgz  -overlay f.nii.gz -overlay-reg register.dat
+
+The register.dat will look something like this
+----------------- register.dat --------------------------
+bert
+3.125
+5.000
+0.150000
+1.000000e+00 0.000000e+00 0.000000e+00 -2.252487e+00
+0.000000e+00 -8.902127e-01 4.555448e-01 2.342102e+00
+0.000000e+00 4.555449e-01 8.902128e-01 -2.159538e-01
+0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00
+round
+----------------- register.dat --------------------------
+
+1.A. To resample the functional into anatomical space:
+
+mri_vol2vol --reg register.dat --mov f.nii.gz --fstarg \
+   --o f-in-anat.mgh
+
+f-in-anat.mgh will have the same size and geometry as
+bert/mri/orig.mgz.  You can test the result in two ways:
+
+  # This will show the low-res functional alighned with its resampled self
+  tkregister2 --reg register.dat --mov f.nii.gz --targ f-in-anat.mgh
+
+  # This will show the resampled functional aligned with the anatomical
+  tkregister2 --mov f-in-anat.mgh --targ $SUBJECTS_DIR/bert/mri/orig.mgz \
+     --regheader --reg /tmp/reg
+
+1.B. To resample the anatomical into the functional space. This is
+basically the same command line as 1.A, but --inv has been included
+and the name of the output is changed.
+
+mri_vol2vol --reg register.dat --mov f.nii.gz --fstarg \
+  --o anat-in-func.mgh --inv
+
+anat-in-func.mgh will be the same size and geometry as f.nii.gz.
+You can test the result in two ways:
+
+  # This will show the low-res anat aligned with its hires self
+  tkregister2 --reg register.dat --mov anat-in-func.mgh
+
+  # This will show the resampled anat aligned with the functional
+  tkregister2 --mov anat-in-func.mgh --targ f.nii.gz \
+     --regheader --reg /tmp/reg
+
+1.C Map functional to anatomical without resampling. Rather, change
+the vox2ras (sform/qform) matrix. This is the same cmd line as 1.A,
+but --no-resample as been added.
+
+mri_vol2vol --reg register.dat --mov f.nii.gz --fstarg \
+   --o f.new.vox2ras.nii.gz --no-resample
+
+f.new.vox2ras.nii.gz will have the same dimension and voxel size
+as f.nii.gz, but its vox2ras (sform/qform) matrix will have changed.
+You can check the registration in two ways:
+
+  # The registration is created implicitly from the vox2ras matrix
+  # (that is what --regheader does). There's no need to specify
+  # and input registration
+  tkregister2 --mov f.new.vox2ras.nii.gz --s bert --regheader --reg /tmp/reg
+
+  # Display the functional as an overlay in tkmedit (no registration
+  # needed).
+  tkmedit bert orig.mgz -overlay f.new.vox2ras.nii.gz
+
+1.D Map a binary mask in functional space to anatomical space. This is
+basically the same cmd line as 1.A, but --interp nearest has been
+added so that it does not try to interpolate the mask (ie, it will
+still be binary after resampling):
+
+mri_vol2vol --reg register.dat --mov mask.nii.gz --fstarg \
+   --o mask-in-anat.mgh --interp nearest
+
+2. Map functional to/from talairach (MNI305) space. This uses a
+two-stage registration: func-to-anat (register.dat) and
+anat-to-talairach (talairach.xfm).
+
+Make sure that sure the func-to-anat reg is correct as was done in
+Example 1. Next, make sure that the anat-to-tal is correct with:
+
+tkregister2 --s bert --fstal
+
+2.A Map functional to talairach (MNI305) space with 2mm isotropic
+resolution. This is very similar to 1.A with the addition of --tal
+and --talres 2.
+
+mri_vol2vol --mov f.nii.gz --reg register.dat \
+     --o f-in-tal.2mm.mgh --tal --talres 2
+
+f-in-tal.2mm.mgh will be 2mm isotropic with the same geometry as
+$FREESURFER_HOME/average/mni305.cor.subfov2.mgz. This command will
+also create f-in-tal.2mm.mgh.reg, which will register the volume with
+any average MNI305 FreeSurfer subject (fsaverage is used by default).
+The resampling can be checked with:
+
+  # This will show the functional with the fsaverage anatomical
+  tkregister2 --mov f-in-tal.2mm.mgh --reg f-in-tal.2mm.mgh.reg
+
+2.B Map functional to talairach (MNI305) space with 1mm isotropic
+resolution. Same as 2.A but use --talres 1.
+
+mri_vol2vol --mov f.nii.gz --reg register.dat \
+     --o f-in-tal.1mm.mgh --tal --talres 1
+
+f-in-tal.1mm.mgh will take up 8 times as much space as f-in-tal.2mm.mgh
+
+3. Apply an MNI transform to data by resampling the anatomical orig.mgz
+into talairach space using bert/mri/transforms/talairach.xfm:
+
+First, check that the talairach.xfm is correct (this is basically the same
+thing as 'tkregister2 --s bert --fstal' in Example 2:
+
+ cd bert/mri
+ tkregister2 --targ orig.mgz \
+     --mov $FREESURFER_HOME/average/mni305.cor.mgz \
+     --xfm transforms/talairach.xfm --reg /tmp/reg
+
+ Now resample
+ mri_vol2vol --mov orig.mgz \
+     --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+     --xfm transforms/talairach.xfm  \
+     --o orig-in-mni305.mgz
+
+ Now test the resampling:
+ tkregister2 --mov orig-in-mni305.mgz \
+    --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+    --reg /tmp/reg --regheader
+
+
+FORMATS
+
+Data file format can be specified implicitly (through the path name)
+or explicitly. All formats accepted by mri_convert can be used.
+
+BUGS
+
+sinc interpolation is broken except for maybe COR to COR.
+
+
+BUG REPORTING
+
+Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following
+formatted as a list as follows: (1) command-line, (2) directory where
+the program was run (for those in the MGH-NMR Center), (3) version,
+(4) text output, (5) description of the problem.
+
+SEE ALSO
+
+mri_convert, tkregister2
+
+

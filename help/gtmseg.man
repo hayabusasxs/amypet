@@ -1,0 +1,250 @@
+
+gtmseg -- create an anatomical segmentation for the geometric transfer matrix (GTM)
+   run with --help for more help
+
+ --s subject     : subject to analyze (required)
+ --xcerseg : run xcerebralseg on this subject to create apas+head.mgz
+ --samseg : use samseg to create whole head seg rather than GCA
+ --threads nthreads : only applies when running xcerseg
+
+ --o outvol      : relative to subject/mri (default is gtmseg.mgz)
+ --usf USF       : upsampling factor (default is 2)
+ --subsegwm      : subsegment WM into lobes (default)
+ --keep-hypo     : do not relabel hypointensities as WM when subsegmenting WM
+ --keep-cc       : do not relabel corpus callosum as WM
+ --dmax dmax     : distance threshold to use when subsegmenting WM (default is 5)
+ --ctx-annot annot lhbase rhbase : annotation to use for cortical segmentation (default is aparc 1000 2000)
+ --wm-annot  annot lhbase rhbase : annotation to use for WM segmentation (with --subsegwm, default is lobes 3200 4200)
+ --output-usf OutputUSF : set output USF different than USF, mostly for debugging
+ --head headseg : use headseg instead of apas+head.mgz
+ --subseg-cblum-wm : subsegment cerebellum WM into core and gyri:
+ --no-pons :   do not add pons segmentation when doing ---xcerseg:
+ --no-vermis : do not add vermis segmentation when doing ---xcerseg:
+ --ctab colortable 
+ --seg-stats : compute segmentation stats
+ --xcthresh xcthresh : mri_seghead thresh
+
+ --debug 
+ --help 
+gtmseg dev
+
+Creates a segmentation that can then be used with the geometric
+transfer matrix for performing PET partial volume correction. It will
+create a segmentation of the head (approximate extra-cerebral CSF,
+approximate skull, air cavities, and the rest of the head) using the
+xcerebralseg script; this also adds segments for pons and vermis by
+default; With --subseg-cblum-wm, the cerebellum WM is subsegmented
+into a core component and gyri. The core components keep the
+{Left,Right}-Cerebellum-White-Matter names and indices. The gyri will
+become CbmWM_Gyri_{Left,Right} with indices 690 and 691.
+
+The WM can be subsegmented into lobes with --subsegwm. Hypointensities
+can be kept with --keep-hypo. The corpus callosum can be kept with
+--keep-cc. If these segments are not "kept" then they are relabelled
+as WM. The upsampling factor (USF) controls the resolution of the
+segmentation; this make a difference for cortical
+segmentations. Higher resolution is more accurate but takes up more
+disk space and will require more computations later on.
+
+Example:
+
+gtmseg --s subject
+
+Creates a file called $SUBJECTS_DIR/subject/mri/gtmseg.mgz without
+subsegmenting WM. Hypos are re-labeled as WM as is CC. The USF is 2
+(meaning .5mm voxel size).
+
+gtmseg --s subject --keep-hypo --subsegwm --o gtmseg.wmseg.hypo.mgz --usf 1
+
+Creates a file called $SUBJECTS_DIR/subject/mri/gtmseg.wmseg.hypo.mgz
+with subsegmenting of WM and keeping yypos. CC is re-labeled as
+WM. The USF is 1 (meaning 1mm voxel size).
+
+You can use your own segmentation or a modified FS segmentation. 
+It will be easiest if you modify apas+head.mgz to insert your
+segmentations. apas+head.mgz is created by gtmseg but you can
+create it with 
+
+xcerebralseg --s $subject --o $SUBJECTS_DIR/$subject/mri/apas+head.mgz
+
+Using a custom subcortical segementation:
+
+First, run gtmseg as default to create the apas+head.mgz file.
+Create a new/custom subcortical segmentation by replacing voxels in
+apas+head.mgz with your segmentation: make sure that the index you
+give your new segmentation(s) is not already present in
+apas+head.mgz. Next create a color table text file that looks
+something like this:
+
+# TissueTypeSchema 
+#ctTType   0  unknown                           0   0   0    0
+#ctTType   1  cortex                          205  62  78    0
+#ctTType   2  subcort_gm                      230 148  34    0
+#ctTType   3  wm                                0 255   0    0
+#ctTType   4  csf                             120  18 134    0
+#ctTType   5  head                            150 150 200    0
+265 MySeg            219 100 176 0 2
+
+In the above case, it is assumed that the index that you used
+was 265 and that your segmentation is for subcortical gray matter
+(thus making the last number=2 in the MySeg row). If you have more
+than one segmentation you are adding, then add rows into the 
+color table. The first 5 entries codes for the different possible
+tissue types.
+
+You can then run
+
+gtmseg --s subject --head apas+head+myseg.mgz \
+   --ctab myseg.colortable.txt --o gtmseg+myseg.mgz  
+
+where apas+head+myseg.mgz is apas+head.mgz with your new segmentation,
+myseg.colortable.txt is the color table you created, and
+gtmseg+myseg.mgz will be your output volume. Note that an output color
+table gtmseg+myseg.ctab will be generated. You should check in this to
+make sure that your segmentation appears. You can also run
+
+tkmeditfv subject orig.mgz -seg gtmseg+myseg.mgz  myseg.colortable.txt
+
+To use, eg, aparc.a2009s, then
+  --ctx-annot aparc.a2009s.annot 11100 12101
+  The 11100 and 12101 will make it agree with  $FREESURFER/FreeSurferColorLUT.txt
+
+Using a custom cortical parcellation:
+
+If you have your own cortical annotation, then just specify
+  --ctx-annot your.annot 1000 2000 
+Where your cortical parcellation is in subject/label/?h.your.annot
+
+The values 1000 and 2000 are used to create the color table and
+segmentation indices for the output volume. In this case, 1000 will be
+added to the left hemi and 2000 will be added to the right hemi.  The
+actual values (1000, 2000) are semi-arbitrary. There needs to be
+enough of a difference so that the indices for lh will not overlap
+with those of the rh. They need to be 1000 or over so that the
+software recognizes them as cortex (needed in the colortable to
+specify the tissue type).
+
+
+
+`gtmseg` 是 FreeSurfer 中 `petsurfer` 工具包的一部分，其核心功能是为**几何传递矩阵 (GTM)** 方法创建一个精细的解剖学分割图像。GTM 是一种在 PET (正电子发射断层扫描) 图像分析中进行**部分容积效应校正 (Partial Volume Correction, PVC)** 的技术。这个校正非常重要，因为 PET 图像的分辨率相对较低，一个体素内可能包含多种组织类型（如灰质、白质、脑脊液），导致信号被平均化，`gtmseg` 创建的精确分割就是为了解决这个问题。
+
+---
+
+### **主要运行参数**
+
+这里我们逐条解释命令的每个参数选项。
+
+#### **核心与输入/输出**
+
+* `--s subject`
+    * **作用**: 这是**必需**参数，用于指定要处理的受试者ID。脚本会在 `$SUBJECTS_DIR` 环境变量所指向的目录中查找名为 `subject` 的文件夹，并从中读取所需的 MRI 数据（如 `orig.mgz`, `aseg.mgz` 等）。
+    * **可能的后果**: 如果不提供此参数，命令将无法执行并报错。如果指定的受试者ID不存在或其 FreeSurfer `recon-all` 流程未完成，脚本同样会失败。
+
+* `--o outvol`
+    * **作用**: 指定输出的分割文件名，该文件将保存在受试者的 `mri` 目录下。默认文件名是 `gtmseg.mgz`。
+    * **可能的后果**: 使用此参数可以方便地管理不同参数生成的多个分割版本（例如，`gtmseg_usf1.mgz`, `gtmseg_with_lesions.mgz`）。如果不指定，它会覆盖 `mri` 目录下任何已存在的 `gtmseg.mgz` 文件。
+
+* `--head headseg`
+    * **作用**: 允许用户提供一个自定义的头部全分割文件，而不是使用脚本自动生成的 `apas+head.mgz`。这对于高级用户非常有用。
+    * **可能的后果**: 这给了用户极大的灵活性，比如可以整合手动编辑过的分割区，或者使用其他更先进的分割算法的结果。但**风险也很高**：如果提供的 `headseg` 文件与受试者的 T1 图像对齐不佳、存在拓扑错误或标签错误，那么最终生成的 `gtmseg` 分割质量将非常差，直接影响后续 PET 分析的准确性。
+
+---
+
+### **分割算法与流程控制**
+
+* `--xcerseg`
+    * **作用**: 明确指示脚本运行 `xcerebralseg` 来创建一个包含大脑外结构（如脑膜、颅骨、头皮等）的头部全分割 `apas+head.mgz`。这通常是默认流程的一部分。
+    * **可能的后果**: `xcerebralseg` 是一个基于图谱的分割方法。其结果的准确性依赖于图谱库。在某些情况下，例如受试者头部解剖结构异常或图像质量不佳时，分割可能会出错。
+
+* `--samseg`
+    * **作用**: 使用 `samseg` 工具来替代传统的 GCA (Gaussian Classifier Array) 方法生成头部全分割。`samseg` 是一个更现代的、基于分割合成的工具。
+    * **可能的后果**: `samseg` 通常对不同对比度的 MRI 图像更鲁棒，并且在处理有病理（如白质病变、肿瘤）的图像时可能表现更好。选择此项可能会得到一个与默认流程不同的头部基础分割，这可能更优，也可能在某些情况下更差，取决于具体数据。
+
+* `--threads nthreads`
+    * **作用**: 指定在运行 `xcerebralseg` 或 `samseg` 时使用的 CPU 线程数。
+    * **可能的后果**: 在多核处理器上，设置更高的线程数可以**显著加快**计算速度。但不会影响最终分割结果的质量。如果设置的线程数超过了机器的物理核心数，性能提升可能不明显，甚至会因为资源竞争而略微降低。
+
+---
+
+### **分辨率与精细化控制**
+
+* `--usf USF`
+    * **作用**: 设置**上采样因子 (Upsampling Factor)**。默认值是 `2`。这意味着如果原始 T1 图像是 1mm 各向同性体素，输出的 `gtmseg.mgz` 将会是 0.5mm 各向同性体素。
+    * **可能的后果**:
+        * **优点**: 提高分辨率可以更精确地描绘微小结构（如皮层）的边界，减少部分容积效应，从而得到更准确的 PET 定量结果。这是 GTM-PVC 方法的核心优势之一。
+        * **缺点**: 文件体积会急剧增大（USF=2，体素数量变为原来的 $2^3 = 8$ 倍），后续所有处理步骤的**计算时间和内存消耗都会显著增加**。这是一个在精度和计算成本之间的权衡。
+
+* `--subsegwm`
+    * **作用**: 这是**默认行为**，它会将大脑白质 (White Matter, WM) 根据皮层脑叶（如额叶、顶叶等）进行亚区细分。
+    * **可能的后果**: 提供了白质内部更精细的区域划分。这对于需要研究特定脑叶白质区域 PET 信号的研究非常有用。如果不希望进行这种细分（虽然帮助文档没有提供关闭选项，但了解其默认行为很重要），则所有白质会被标记为同一个结构。
+
+* `--keep-hypo`
+    * **作用**: 在进行白质细分时，保留原始分割中的**白质低信号区 (WM hypointensities)**，而不是将它们重新标记为普通的白质。
+    * **可能的后果**: 白质低信号区通常与白质病变或脱髓鞘有关。默认情况下，`gtmseg` 会将这些区域“平滑”掉，归入周围的白质。使用此选项可以**保留这些潜在的病理区域**作为一个独立的类别进行分析。这对于研究神经退行性疾病或多发性硬化等至关重要，否则这些病变区域的 PET 信号会被健康白质组织“稀释”。
+
+* `--keep-cc`
+    * **作用**: 保留**胼胝体 (Corpus Callosum, CC)** 作为一个独立的结构，而不是将其重新标记为普通的白质。
+    * **可能的后果**: 胼胝体是连接左右大脑半球最大的白质纤维束，有其独特的结构和功能。默认情况下它被归入普通白质。保留它可以让你**单独分析胼胝体**的 PET 信号，这在许多神经科学研究中是有意义的。
+
+* `--dmax dmax`
+    * **作用**: 在进行白质细分时，设置一个距离阈值（单位：mm）。这个阈值定义了从皮层延伸到白质内部的脑叶标签的最大距离。默认值是 `5` mm。
+    * **可能的后果**:
+        * **较小的 `dmax`**: 只有靠近皮层的白质才会被赋予脑叶标签，深部白质会被归为一个统一的、未分类的区域。
+        * **较大的 `dmax`**: 脑叶的标签会延伸到更深的白质区域。如何选择这个值取决于你的研究假设，即你认为皮层功能区的影响能延伸到多深的白质。
+
+* `--subseg-cblum-wm`
+    * **作用**: 将小脑白质细分为**核心区 (core)** 和 **脑回区 (gyri)**。
+    * **可能的后果**: 这为小脑白质提供了更精细的解剖划分。核心区保留原始的 `*-Cerebellum-White-Matter` 标签，而脑回白质会被赋予新的标签（`CbmWM_Gyri_*`）。这对于需要精确研究小脑内部功能活动的研究很有价值。
+
+---
+
+### **自定义与高级选项**
+
+* `--ctx-annot annot lhbase rhbase`
+    * **作用**: 指定用于皮层分割的**注释文件 (annotation file)**。默认是 `aparc`。你也可以指定其他的，如 `aparc.a2009s`。`lhbase` 和 `rhbase` 是为左右半球的标签值添加的基数，用于确保左右半球的标签ID不会重叠。
+    * **可能的后果**: 这允许用户使用不同的脑图谱（皮层分区方案）来定义感兴趣区。例如，`aparc.a2009s` 提供了比 `aparc` 更细致的分区。如果提供的基数不当，可能会导致标签值冲突，造成分割错误。
+
+* `--wm-annot annot lhbase rhbase`
+    * **作用**: 当启用 `--subsegwm` 时，用此参数指定用于白质细分的注释文件。默认是 `lobes` (脑叶)。
+    * **可能的后果**: 类似于 `--ctx-annot`，允许你基于不同的分区方案来细分白质。
+
+* `--no-pons` / `--no-vermis`
+    * **作用**: 在运行 `--xcerseg` 时，不添加对**脑桥 (pons)** 或 **小脑蚓 (vermis)** 的分割。
+    * **可能的后果**: 默认情况下 `gtmseg` 会尝试分割这两个结构。如果自动分割的效果不好，或者你的研究完全不关心这两个区域，可以使用这两个选项将其排除，以简化模型或避免引入分割错误。
+
+* `--ctab colortable`
+    * **作用**: 提供一个自定义的**颜色查找表 (Color Look-Up Table)**。这在整合自定义分割区时是必需的。
+    * **可能的后果**: 颜色查找表不仅定义了每个分割ID的颜色，更重要的是，它定义了**组织的类型 (Tissue Type)**，如皮层、白质、CSF等。这是 GTM 算法正确工作的基础。如果提供了错误的组织类型，整个 PET 校正结果都会是错误的。
+
+* `--seg-stats`
+    * **作用**: 计算并输出最终分割文件中每个区域的统计信息（如体积）。
+    * **可能的后果**: 生成一个统计文件，方便用户快速检查各个脑区的大小，有助于质量控制和后续的统计分析。
+
+* `--xcthresh xcthresh`
+    * **作用**: 设置 `mri_seghead`（`xcerebralseg` 内部调用的工具）的阈值。
+    * **可能的后果**: 这是一个底层工具的参数，调整它可以改变头部软组织和颅骨的分割边界。除非你非常清楚 `mri_seghead` 的工作原理并且发现默认分割有明显问题，否则不建议修改。
+
+* `--debug` / `--help`
+    * **作用**: `--debug` 会在运行时输出大量中间信息，用于排查错误。`--help` 显示帮助文档。
+    * **可能的后果**: `--debug` 模式会产生海量的终端输出，但对于开发者或解决棘手问题时非常有用。
+
+---
+
+### **使用自定义分割的流程解析**
+
+帮助文档中详细说明了如何整合你自己定义的分割区，这部分非常重要：
+
+1.  **生成基础文件**: 首先正常运行一次 `gtmseg`，目的是为了得到 `apas+head.mgz` 这个全头部范围的分割文件。
+2.  **编辑分割**: 使用 `freeview` 等工具打开这个 `apas+head.mgz` 文件，在你想要定义新区域的地方，用一个新的、**不与现有标签冲突**的整数ID来“绘制”你的分割。
+3.  **创建颜色查找表 (CTAB)**:
+    * 创建一个文本文件。
+    * 文件的前几行定义组织类型（`#ctTType`），这是固定的模式。
+    * 为你新加的分割区添加一行，格式为：`ID  区域名称  R G B A  组织类型代码`。
+    * 例如：`265 MySeg 219 100 176 0 2`。这里的 `265` 是你在上一步中使用的ID，`MySeg` 是名称，`219 100 176` 是RGB颜色，`0` 是透明度，最后的 `2` 是**最关键的组织类型代码**，`2` 代表 `subcort_gm` (皮下灰质)。如果你的新区域是其他组织，需要使用对应的代码（`1`=皮层, `3`=白质, `4`=CSF等）。
+4.  **重新运行 `gtmseg`**:
+    * 使用 `--head` 指向你修改后的分割文件。
+    * 使用 `--ctab` 指向你创建的颜色查找表文件。
+    * 使用 `--o` 指定一个新的输出文件名。
+
+通过这个流程，你可以将任何感兴趣的区域（如手动描绘的肿瘤、特定核团等）精确地整合到 GTM 模型中，从而获得这些特定区域的、经过部分容积效应校正的 PET 值。
+
