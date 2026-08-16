@@ -128,7 +128,6 @@ amypet/
   * `suvr_calculator.py`：SUVr 标化摄取值比率计算。
   * `pet_pvc_processor.py` & `pvc_suvr_calculator.py`：部分容积效应校正 (GTM-PVC)。
   * `check.py`：可视化质量评估。
-* `help/`：各工具底层命令手册参考。
 * `sh/`：自动化批处理辅助脚本。
 
 ---
